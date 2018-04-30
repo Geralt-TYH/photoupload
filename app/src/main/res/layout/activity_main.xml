@@ -10,12 +10,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/personal_info_header_img"
-        android:src="@drawable/ic_launcher_background"/>
+        android:src="@mipmap/addphoto"/>
     <TextView
         android:id="@+id/showText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="即将显示预测结果"
+
         android:layout_below="@+id/personal_info_header_img"/>
 
     <Button
@@ -33,4 +33,12 @@
         android:text="在线识别"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true" />
+
+    <Button
+        android:id="@+id/offline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toEndOf="@+id/upload"
+        android:text="离线识别" />
 </RelativeLayout>

@@ -1,9 +1,11 @@
 package com.tangyinhao.photoupload;
 
 import android.Manifest;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -57,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     HashMap<String, Bitmap> temp=new HashMap<String, Bitmap>() ;
 
     private static final String TAG = "MainActivity";
+    private MyDatabaseHelper dbHelper;
     public static final int TAKE_PHOTO=1;
     public static final int CHOSSE_PHOTO =2;
     private ImageView picture;
@@ -68,6 +71,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        dbHelper=new MyDatabaseHelper(this,"DrugInfo.db",null,1);
+        SQLiteDatabase db=dbHelper.getWritableDatabase();
+        initData(db);
 
         client.setConnectionTimeoutInMillis(2000);
         client.setSocketTimeoutInMillis(60000);
@@ -82,6 +89,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         upload.setOnClickListener(this);
 
         showText=(TextView) findViewById(R.id.showText);
+    }
+    private void initData(SQLiteDatabase db){
+        ContentValues values=new ContentValues();
+        values.put("name","藏红花");
+        values.put("intro","藏红花主要作用于血，具有养血、活血、补血、行血、理血等功能。此外，藏红花具有活血化瘀、凉血解毒、解郁安神、美容养颜等功效，主治月经不调、经闭、产后瘀血腹痛、不孕不育等妇科疾病，对治疗心脑血管疾病、调节肝肾功能、调三高、抗肿瘤癌症等疗效显著。");
+        db.insert("Drug",null,values);
+        values.clear();
     }
 
     @Override
@@ -319,7 +333,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     String result = HttpUtil.post(url, accessToken, param);
                     System.out.println(result);
                     AnswerBean answerBean = new Gson().fromJson(result,AnswerBean.class);
-                    List<AnswerBean.resultBean> userBeanList = answerBean.getResult();
+                    final List<AnswerBean.resultBean> userBeanList = answerBean.getResult();
                     buffer=new StringBuffer();
                     for (AnswerBean.resultBean as:userBeanList){
                         buffer.append(as.getName()+" "+as.getScore()+"\n");
@@ -327,7 +341,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
-                            showText.setText(buffer);
+                            String info="查询失败";
+                            SQLiteDatabase db=dbHelper.getWritableDatabase();
+                            Cursor cursor=db.rawQuery("select intro from Drug where name=?",new String[]{userBeanList.get(0).getName()});
+                            if (cursor.moveToFirst()) {
+                                    info=cursor.getString(cursor.getColumnIndex("intro"));
+                            }
+                            cursor.close();
+                            showText.setText(info);
                             buffer=null;
                         }
                     });
@@ -348,16 +369,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
                     ActivityCompat.requestPermissions(MainActivity.this,new String []{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
                 }else{
-//                    Intent intent=new Intent("android.intent.action.GET_CONTENT");
-//                    intent.setType("image/*");
-//                    startActivityForResult(intent,CHOSSE_PHOTO);
                     showPopueWindow();
                 }
                 break;
             case R.id.upload:
-/*                picture.setDrawingCacheEnabled(true);
-                Bitmap bm = picture.getDrawingCache();
-                picture.setDrawingCacheEnabled(false);*/
                 upImage(picBitmap);
                 break;
         }
